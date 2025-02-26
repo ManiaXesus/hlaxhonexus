@@ -1,1 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+	<style type="text/css">
+		html,
+		body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+		}
+	</style>
+	<meta charset="utf-8" />
+	<title>Monaco Lua Editor</title>
+</head>
+
+<body>
+	<div id="container" style="width:100%;height:100%;"></div>
+	<script src="vs/loader.js"></script>
+	<script type="text/javascript">
+		require.config({
+			paths: { 'vs': 'vs' }
+		});
+
+		var editor, Proposals = [];
+		var SetText, ShowMinimap, HideMinimap, EnableAutoComplete, DisableAutoComplete, GetText, AddIntellisense;
+
+		require(['vs/editor/editor.main'], function () {
+			monaco.languages.registerCompletionItemProvider('lua', {
+				provideCompletionItems: function () { return Proposals; }
+			});
+
+			monaco.editor.defineTheme('net-theme-dark', {
+				base: 'vs-dark',
+				inherit: true,
+				colors: { "editor.background": '#101010' },
+				rules: [
+					{ token: 'global', foreground: '6699cc', fontStyle: "bold" },
+					{ token: 'keyword', foreground: 'cc99cc', fontStyle: "bold" },
+					{ token: 'comment', foreground: '999999' },
+					{ token: 'number', foreground: 'f99157' },
+					{ token: 'string', foreground: '99CC99' },
+					{ token: 'Method', foreground: 'ffa1dc' }
+				]
+			});
+
+			editor = monaco.editor.create(document.getElementById('container'), {
+				language: 'lua',
+				theme: "net-theme-dark",
+				acceptSuggestionOnEnter: "smart",
+				suggestOnTriggerCharacters: true,
+				suggestSelection: "recentlyUsed",
+				folding: true,
+				wordBasedSuggestions: true,
+				scrollbar: { verticalHasArrows: true },
+				dragAndDrop: true,
+				links: true,
+				minimap: { enabled: false },
+				showFoldingControls: "always",
+				smoothScrolling: true,
+			});
+
+			EnableAutoComplete = function(){
+				editor.updateOptions({
+					suggestOnTriggerCharacters: true,
+					acceptSuggestionOnEnter: "smart",
+					wordBasedSuggestions: true
+				});
+			}
+
+			DisableAutoComplete = function(){
+				editor.updateOptions({
+					suggestOnTriggerCharacters: false,
+					acceptSuggestionOnEnter: "off",
+					wordBasedSuggestions: false
+				});
+			}
+
+			window.onresize = function () { editor.layout(); };
+
+			ShowMinimap = function () {
+				editor.updateOptions({ minimap: { enabled: true } });
+			}
+
+			HideMinimap = function () {
+				editor.updateOptions({ minimap: { enabled: false } });
+			}
+
+			editor.onDidChangeModelContent(function () {
+				window.chrome.webview.postMessage(editor.getValue())
+			});
+
+			GetText = function () { return editor.getValue(); }
+			SetText = function (x) { editor.setValue(x); }
+
+			AddIntellisense = function (label, kind, detail, insertText) {
+				var typeMap = {
+					"Class": monaco.languages.CompletionItemKind.Class,
+					"Function": monaco.languages.CompletionItemKind.Function,
+					"Method": monaco.languages.CompletionItemKind.Method,
+					"Keyword": monaco.languages.CompletionItemKind.Keyword,
+					"Variable": monaco.languages.CompletionItemKind.Variable
+				};
+				Proposals.push({ label, kind: typeMap[kind] || monaco.languages.CompletionItemKind.Text, detail, insertText });
+			}
+		});
+	</script>
+</body>
+
+</html>
 
